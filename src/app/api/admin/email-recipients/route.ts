@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, readFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import { put, list } from '@vercel/blob';
 
-const DATA_DIR = join(process.cwd(), 'data');
-const RECIPIENTS_FILE = join(DATA_DIR, 'email-recipients.json');
+const BLOB_PATH = 'email-recipients.json';
 
 interface EmailRecipient {
   id: string;
@@ -11,16 +9,60 @@ interface EmailRecipient {
   addedAt: string;
 }
 
+async function getRecipients(): Promise<EmailRecipient[]> {
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const { blobs } = await list({ prefix: 'email-recipients' });
+      const blob = blobs.find(
+        (b) => b.pathname === BLOB_PATH || b.pathname.endsWith(BLOB_PATH)
+      );
+      if (blob?.url) {
+        const res = await fetch(blob.url);
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      }
+    } catch {
+      return [];
+    }
+    return [];
+  }
+
+  const { readFile } = await import('fs/promises');
+  const { join } = await import('path');
+  const DATA_DIR = join(process.cwd(), 'data');
+  const RECIPIENTS_FILE = join(DATA_DIR, 'email-recipients.json');
+  try {
+    const data = await readFile(RECIPIENTS_FILE, 'utf-8');
+    return JSON.parse(data);
+  } catch (e: unknown) {
+    const err = e as { code?: string };
+    if (err.code === 'ENOENT') return [];
+    throw e;
+  }
+}
+
+async function saveRecipients(recipients: EmailRecipient[]): Promise<void> {
+  const data = JSON.stringify(recipients, null, 2);
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    await put(BLOB_PATH, data, { access: 'public', addRandomSuffix: false });
+    return;
+  }
+
+  const { writeFile, mkdir } = await import('fs/promises');
+  const { join } = await import('path');
+  const DATA_DIR = join(process.cwd(), 'data');
+  const RECIPIENTS_FILE = join(DATA_DIR, 'email-recipients.json');
+  await mkdir(DATA_DIR, { recursive: true });
+  await writeFile(RECIPIENTS_FILE, data, 'utf-8');
+}
+
 // GET: 이메일 수신자 목록 조회
 export async function GET() {
   try {
-    const data = await readFile(RECIPIENTS_FILE, 'utf-8');
-    const recipients: EmailRecipient[] = JSON.parse(data);
+    const recipients = await getRecipients();
     return NextResponse.json({ success: true, data: recipients });
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      return NextResponse.json({ success: true, data: [] });
-    }
+  } catch (error) {
     console.error('Error reading email recipients:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to read email recipients' },
@@ -32,29 +74,9 @@ export async function GET() {
 // POST: 이메일 수신자 추가
 export async function POST(request: NextRequest) {
   try {
-    // data 디렉토리 생성 (없는 경우)
-    try {
-      await mkdir(DATA_DIR, { recursive: true });
-    } catch (error: any) {
-      if (error.code !== 'EEXIST') {
-        throw error;
-      }
-    }
-
-    // 기존 수신자 목록 읽기
-    let recipients: EmailRecipient[] = [];
-    try {
-      const existingData = await readFile(RECIPIENTS_FILE, 'utf-8');
-      recipients = JSON.parse(existingData);
-    } catch (error: any) {
-      if (error.code !== 'ENOENT') {
-        throw error;
-      }
-    }
-
+    const recipients = await getRecipients();
     const { email } = await request.json();
 
-    // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
       return NextResponse.json(
@@ -63,7 +85,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 중복 확인
     const normalizedEmail = email.toLowerCase().trim();
     if (recipients.some((r) => r.email.toLowerCase() === normalizedEmail)) {
       return NextResponse.json(
@@ -72,7 +93,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 새 수신자 추가
     const newRecipient: EmailRecipient = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       email: normalizedEmail,
@@ -80,9 +100,7 @@ export async function POST(request: NextRequest) {
     };
 
     recipients.push(newRecipient);
-
-    // 파일에 저장
-    await writeFile(RECIPIENTS_FILE, JSON.stringify(recipients, null, 2), 'utf-8');
+    await saveRecipients(recipients);
 
     return NextResponse.json({
       success: true,
@@ -111,22 +129,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // 기존 수신자 목록 읽기
-    let recipients: EmailRecipient[] = [];
-    try {
-      const existingData = await readFile(RECIPIENTS_FILE, 'utf-8');
-      recipients = JSON.parse(existingData);
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
-        return NextResponse.json(
-          { success: false, error: '수신자 목록이 없습니다.' },
-          { status: 404 }
-        );
-      }
-      throw error;
-    }
-
-    // 해당 ID의 수신자 제거
+    const recipients = await getRecipients();
     const filteredRecipients = recipients.filter((r) => r.id !== id);
 
     if (filteredRecipients.length === recipients.length) {
@@ -136,8 +139,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // 파일에 저장
-    await writeFile(RECIPIENTS_FILE, JSON.stringify(filteredRecipients, null, 2), 'utf-8');
+    await saveRecipients(filteredRecipients);
 
     return NextResponse.json({
       success: true,
