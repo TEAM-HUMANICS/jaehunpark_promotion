@@ -23,7 +23,7 @@ async function getEmailRecipients(): Promise<string[]> {
   // Vercel Blob 사용 (배포 환경)
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     try {
-      const { blobs } = await list({ prefix: 'email-recipients' });
+      const { blobs } = await list();
       const blob = blobs.find(
         (b) =>
           b.pathname === 'email-recipients.json' ||
@@ -31,7 +31,7 @@ async function getEmailRecipients(): Promise<string[]> {
           b.pathname.includes('email-recipients')
       );
       if (blob?.url) {
-        const res = await fetch(blob.url);
+        const res = await fetch(blob.url, { cache: 'no-store' });
         const recipients: EmailRecipient[] = await res.json();
         return Array.isArray(recipients) ? recipients.map((r) => r.email) : [];
       }

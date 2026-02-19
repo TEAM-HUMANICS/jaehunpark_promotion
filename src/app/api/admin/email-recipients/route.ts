@@ -12,7 +12,7 @@ interface EmailRecipient {
 async function getRecipients(): Promise<EmailRecipient[]> {
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     try {
-      const { blobs } = await list({ prefix: 'email-recipients' });
+      const { blobs } = await list();
       const blob = blobs.find(
         (b) =>
           b.pathname === BLOB_PATH ||
@@ -20,11 +20,12 @@ async function getRecipients(): Promise<EmailRecipient[]> {
           b.pathname.includes('email-recipients')
       );
       if (blob?.url) {
-        const res = await fetch(blob.url);
+        const res = await fetch(blob.url, { cache: 'no-store' });
         const data = await res.json();
         return Array.isArray(data) ? data : [];
       }
-    } catch {
+    } catch (e) {
+      console.error('getRecipients blob error:', e);
       return [];
     }
     return [];
@@ -48,7 +49,11 @@ async function saveRecipients(recipients: EmailRecipient[]): Promise<void> {
   const data = JSON.stringify(recipients, null, 2);
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
-    await put(BLOB_PATH, data, { access: 'public', addRandomSuffix: false });
+    await put(BLOB_PATH, data, {
+      access: 'public',
+      addRandomSuffix: false,
+      allowOverwrite: true,
+    });
     return;
   }
 

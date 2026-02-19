@@ -19,14 +19,20 @@ async function getSubmissions(): Promise<Submission[]> {
   // Vercel Blob 사용 가능 시 (배포 환경)
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     try {
-      const { blobs } = await list({ prefix: 'submissions' });
-      const blob = blobs.find((b) => b.pathname === BLOB_PATH || b.pathname.endsWith(BLOB_PATH));
+      const { blobs } = await list();
+      const blob = blobs.find(
+        (b) =>
+          b.pathname === BLOB_PATH ||
+          b.pathname.endsWith(BLOB_PATH) ||
+          b.pathname.includes('submissions.json')
+      );
       if (blob?.url) {
-        const res = await fetch(blob.url);
+        const res = await fetch(blob.url, { cache: 'no-store' });
         const data = await res.json();
         return Array.isArray(data) ? data : [];
       }
-    } catch {
+    } catch (e) {
+      console.error('getSubmissions blob error:', e);
       return [];
     }
     return [];
@@ -51,7 +57,11 @@ async function saveSubmissions(submissions: Submission[]): Promise<void> {
   const data = JSON.stringify(submissions, null, 2);
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
-    await put(BLOB_PATH, data, { access: 'public', addRandomSuffix: false });
+    await put(BLOB_PATH, data, {
+      access: 'public',
+      addRandomSuffix: false,
+      allowOverwrite: true,
+    });
     return;
   }
 

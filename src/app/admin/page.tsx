@@ -72,7 +72,7 @@ export default function AdminPage() {
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/submissions');
+      const response = await fetch('/api/submissions', { cache: 'no-store' });
       const result = await response.json();
 
       if (result.success) {
