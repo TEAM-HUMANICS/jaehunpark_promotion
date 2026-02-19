@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, readFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import { put, list } from '@vercel/blob';
 import { sendLeadNotificationEmail } from '@/lib/email';
 
-const DATA_DIR = join(process.cwd(), 'data');
-const DATA_FILE = join(DATA_DIR, 'submissions.json');
+const BLOB_PATH = 'submissions.json';
 
 interface Submission {
   id: string;
@@ -17,16 +15,60 @@ interface Submission {
   submittedAt: string;
 }
 
+async function getSubmissions(): Promise<Submission[]> {
+  // Vercel Blob 사용 가능 시 (배포 환경)
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const { blobs } = await list({ prefix: 'submissions' });
+      const blob = blobs.find((b) => b.pathname === BLOB_PATH || b.pathname.endsWith(BLOB_PATH));
+      if (blob?.url) {
+        const res = await fetch(blob.url);
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      }
+    } catch {
+      return [];
+    }
+    return [];
+  }
+
+  // 로컬 개발: 파일 시스템 사용
+  const { readFile, mkdir, writeFile } = await import('fs/promises');
+  const { join } = await import('path');
+  const DATA_DIR = join(process.cwd(), 'data');
+  const DATA_FILE = join(DATA_DIR, 'submissions.json');
+  try {
+    const data = await readFile(DATA_FILE, 'utf-8');
+    return JSON.parse(data);
+  } catch (e: unknown) {
+    const err = e as { code?: string };
+    if (err.code === 'ENOENT') return [];
+    throw e;
+  }
+}
+
+async function saveSubmissions(submissions: Submission[]): Promise<void> {
+  const data = JSON.stringify(submissions, null, 2);
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    await put(BLOB_PATH, data, { access: 'public', addRandomSuffix: false });
+    return;
+  }
+
+  const { writeFile, mkdir } = await import('fs/promises');
+  const { join } = await import('path');
+  const DATA_DIR = join(process.cwd(), 'data');
+  const DATA_FILE = join(DATA_DIR, 'submissions.json');
+  await mkdir(DATA_DIR, { recursive: true });
+  await writeFile(DATA_FILE, data, 'utf-8');
+}
+
 // GET: 모든 제출 데이터 조회
 export async function GET() {
   try {
-    const data = await readFile(DATA_FILE, 'utf-8');
-    const submissions: Submission[] = JSON.parse(data);
+    const submissions = await getSubmissions();
     return NextResponse.json({ success: true, data: submissions });
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      return NextResponse.json({ success: true, data: [] });
-    }
+  } catch (error) {
     console.error('Error reading submissions:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to read submissions' },
@@ -38,27 +80,8 @@ export async function GET() {
 // POST: 새 제출 데이터 저장
 export async function POST(request: NextRequest) {
   try {
-    // data 디렉토리 생성 (없는 경우)
-    try {
-      await mkdir(DATA_DIR, { recursive: true });
-    } catch (error: any) {
-      if (error.code !== 'EEXIST') {
-        throw error;
-      }
-    }
+    const submissions = await getSubmissions();
 
-    // 기존 데이터 읽기
-    let submissions: Submission[] = [];
-    try {
-      const existingData = await readFile(DATA_FILE, 'utf-8');
-      submissions = JSON.parse(existingData);
-    } catch (error: any) {
-      if (error.code !== 'ENOENT') {
-        throw error;
-      }
-    }
-
-    // 새 제출 데이터 추가
     const body = await request.json();
     const newSubmission: Submission = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -66,14 +89,11 @@ export async function POST(request: NextRequest) {
     };
 
     submissions.push(newSubmission);
-
-    // 파일에 저장
-    await writeFile(DATA_FILE, JSON.stringify(submissions, null, 2), 'utf-8');
+    await saveSubmissions(submissions);
 
     // 이메일 알림 전송 (비동기로 처리하여 응답 지연 방지)
     sendLeadNotificationEmail(newSubmission).catch((error) => {
       console.error('이메일 알림 전송 실패:', error);
-      // 이메일 전송 실패해도 제출은 성공으로 처리
     });
 
     return NextResponse.json({
