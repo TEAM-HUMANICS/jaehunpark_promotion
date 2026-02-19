@@ -1,0 +1,136 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Isamanru';
+  src: url('/fonts/Isamanru-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-pretendard: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* Hardcore High-Tech Color System */
+  --void: #0A0A0A;
+  --void-800: #111111;
+  --void-700: #1A1A1A;
+  --ember: #E63946;
+  --ember-glow: rgba(230, 57, 70, 0.5);
+  --steel: #3B82F6;
+  --steel-glow: rgba(59, 130, 246, 0.4);
+  --chrome: #94A3B8;
+  --white: #FFFFFF;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--void);
+  color: var(--white);
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: var(--font-pretendard);
+}
+
+/* Section diagonal dividers */
+.section-diagonal {
+  position: relative;
+  clip-path: polygon(0 0, 100% 4%, 100% 100%, 0 96%);
+}
+
+.section-diagonal-reverse {
+  clip-path: polygon(0 4%, 100% 0, 100% 96%, 0 100%);
+}
+
+/* Digital/tech font styling for numbers */
+.font-digital {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+/* Metallic button base */
+.btn-metallic {
+  background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 50%, rgba(0,0,0,0.2) 100%);
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 20px rgba(0,0,0,0.5);
+}
+
+/* Ember glow animation */
+@keyframes ember-flicker {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.15); }
+}
+
+.animate-ember {
+  animation: ember-flicker 2s ease-in-out infinite;
+}
+
+/* Hero CTA - 움직이는 불꽃 그라디언트 */
+@keyframes flame-gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.btn-cta-hero {
+  background: linear-gradient(90deg, #FB923C 0%, #E63946 25%, #DC2626 50%, #E63946 75%, #FB923C 100%);
+  background-size: 200% 100%;
+  background-position: 0% 50%;
+  animation: flame-gradient 4s ease-in-out infinite, ember-flicker 3s ease-in-out infinite;
+  box-shadow: 0 0 25px rgba(251, 146, 60, 0.5), 0 0 50px rgba(230, 57, 70, 0.3);
+}
+.btn-cta-hero:hover {
+  animation: flame-gradient 2s ease-in-out infinite, ember-flicker 2s ease-in-out infinite;
+  box-shadow: 0 0 35px rgba(251, 146, 60, 0.6), 0 0 60px rgba(230, 57, 70, 0.4);
+}
+
+/* 커스텀 스크롤바 - 숨기기 또는 어울리게 스타일링 */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.scrollbar-custom {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(230, 57, 70, 0.3) transparent;
+}
+
+.scrollbar-custom::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background-color: rgba(230, 57, 70, 0.3);
+  border-radius: 3px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(230, 57, 70, 0.5);
+}
+
+/* 모달이 열렸을 때 StickyCTA 숨기기 */
+body.modal-open [data-sticky-cta],
+body.modal-open [data-sticky-cta] * {
+  display: none !important;
+  visibility: hidden !important;
+}
+
