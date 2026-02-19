@@ -14,7 +14,10 @@ async function getRecipients(): Promise<EmailRecipient[]> {
     try {
       const { blobs } = await list({ prefix: 'email-recipients' });
       const blob = blobs.find(
-        (b) => b.pathname === BLOB_PATH || b.pathname.endsWith(BLOB_PATH)
+        (b) =>
+          b.pathname === BLOB_PATH ||
+          b.pathname.endsWith(BLOB_PATH) ||
+          b.pathname.includes('email-recipients')
       );
       if (blob?.url) {
         const res = await fetch(blob.url);
@@ -75,7 +78,16 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const recipients = await getRecipients();
-    const { email } = await request.json();
+    let body: { email?: string };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: '요청 데이터가 올바르지 않습니다.' },
+        { status: 400 }
+      );
+    }
+    const { email } = body;
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
@@ -106,6 +118,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: '이메일 수신자가 추가되었습니다.',
       data: newRecipient,
+      recipients, // 업데이트된 전체 목록 반환 (refetch 없이 즉시 반영)
     });
   } catch (error) {
     console.error('Error adding email recipient:', error);

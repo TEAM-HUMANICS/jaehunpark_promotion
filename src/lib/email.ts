@@ -25,7 +25,10 @@ async function getEmailRecipients(): Promise<string[]> {
     try {
       const { blobs } = await list({ prefix: 'email-recipients' });
       const blob = blobs.find(
-        (b) => b.pathname === 'email-recipients.json' || b.pathname.endsWith('email-recipients.json')
+        (b) =>
+          b.pathname === 'email-recipients.json' ||
+          b.pathname.endsWith('email-recipients.json') ||
+          b.pathname.includes('email-recipients')
       );
       if (blob?.url) {
         const res = await fetch(blob.url);

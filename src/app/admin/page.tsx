@@ -103,7 +103,7 @@ export default function AdminPage() {
 
   const fetchEmailRecipients = async () => {
     try {
-      const response = await fetch('/api/admin/email-recipients');
+      const response = await fetch('/api/admin/email-recipients', { cache: 'no-store' });
       const result = await response.json();
       if (result.success) {
         setEmailRecipients(result.data);
@@ -129,13 +129,25 @@ export default function AdminPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email: newEmail.trim() }),
+        cache: 'no-store',
       });
 
       const result = await response.json();
 
+      if (!response.ok) {
+        setEmailError(result.error || `오류 (${response.status}): 이메일 추가에 실패했습니다.`);
+        return;
+      }
+
       if (result.success) {
         setNewEmail('');
-        await fetchEmailRecipients();
+        setEmailError(null);
+        // API에서 반환한 목록으로 즉시 업데이트 (refetch 지연 방지)
+        if (Array.isArray(result.recipients)) {
+          setEmailRecipients(result.recipients);
+        } else {
+          await fetchEmailRecipients();
+        }
       } else {
         setEmailError(result.error || '이메일 추가에 실패했습니다.');
       }
