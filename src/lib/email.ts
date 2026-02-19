@@ -1,6 +1,5 @@
 import nodemailer from 'nodemailer';
-import { readFile } from 'fs/promises';
-import { join } from 'path';
+import { list } from '@vercel/blob';
 
 interface SubmissionData {
   id: string;
@@ -19,21 +18,41 @@ interface EmailRecipient {
   addedAt: string;
 }
 
-// 이메일 수신자 목록 가져오기
+// 이메일 수신자 목록 가져오기 (Vercel Blob 또는 로컬 파일)
 async function getEmailRecipients(): Promise<string[]> {
-  const RECIPIENTS_FILE = join(process.cwd(), 'data', 'email-recipients.json');
-  
+  // Vercel Blob 사용 (배포 환경)
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const { blobs } = await list({ prefix: 'email-recipients' });
+      const blob = blobs.find(
+        (b) => b.pathname === 'email-recipients.json' || b.pathname.endsWith('email-recipients.json')
+      );
+      if (blob?.url) {
+        const res = await fetch(blob.url);
+        const recipients: EmailRecipient[] = await res.json();
+        return Array.isArray(recipients) ? recipients.map((r) => r.email) : [];
+      }
+    } catch (e) {
+      console.error('Error reading recipients from Blob:', e);
+    }
+    return [];
+  }
+
+  // 로컬 개발: 파일 시스템
   try {
+    const { readFile } = await import('fs/promises');
+    const { join } = await import('path');
+    const RECIPIENTS_FILE = join(process.cwd(), 'data', 'email-recipients.json');
     const data = await readFile(RECIPIENTS_FILE, 'utf-8');
     const recipients: EmailRecipient[] = JSON.parse(data);
     return recipients.map((r) => r.email);
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      // 파일이 없으면 환경변수에서 가져오기 (하위 호환성)
+  } catch (e: unknown) {
+    const err = e as { code?: string };
+    if (err.code === 'ENOENT') {
       const RECIPIENT_EMAIL = process.env.RECIPIENT_EMAIL || '';
       return RECIPIENT_EMAIL ? [RECIPIENT_EMAIL] : [];
     }
-    console.error('Error reading email recipients:', error);
+    console.error('Error reading email recipients:', e);
     return [];
   }
 }
