@@ -17,10 +17,6 @@ const totalDiscountPercent = Math.round(
 ); // 약 24%
 
 const additionalBenefits = [
-  {
-    main: '200만원 상당의 휴머닉스 케어 서비스 지원',
-    sub: '26년 5월 구매 전 고객 대상',
-  },
   '배송비, 설치비 무료',
   '로보틱 트레이닝 기능 지원',
   '세짐 소프트웨어 평생 무료 업데이트',
@@ -168,7 +164,7 @@ export default function BenefitSection() {
                     ) : (
                       <span
                         className={`text-sm md:text-base ${
-                          index === 1 ? 'font-bold text-white' : 'text-chrome-300'
+                          index === 0 ? 'font-bold text-white' : 'text-chrome-300'
                         }`}
                       >
                         {benefit}
