@@ -100,10 +100,13 @@ export async function POST(request: NextRequest) {
     submissions.push(newSubmission);
     await saveSubmissions(submissions);
 
-    // 이메일 알림 전송 (비동기로 처리하여 응답 지연 방지)
-    sendLeadNotificationEmail(newSubmission).catch((error) => {
+    // 이메일 알림 전송 (await 필수 - 서버리스 종료 전 전송 완료해야 함)
+    try {
+      await sendLeadNotificationEmail(newSubmission);
+    } catch (error) {
       console.error('이메일 알림 전송 실패:', error);
-    });
+      // 이메일 실패해도 제출은 성공으로 처리
+    }
 
     return NextResponse.json({
       success: true,
