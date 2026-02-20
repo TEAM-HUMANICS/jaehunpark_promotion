@@ -52,7 +52,6 @@ async function saveRecipients(recipients: EmailRecipient[]): Promise<void> {
     await put(BLOB_PATH, data, {
       access: 'public',
       addRandomSuffix: false,
-      allowOverwrite: true,
     });
     return;
   }

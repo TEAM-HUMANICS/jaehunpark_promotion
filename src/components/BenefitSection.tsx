@@ -152,24 +152,13 @@ export default function BenefitSection() {
                     transition={{ duration: 0.4, delay: index * 0.1 }}
                   >
                     <Check className="h-5 w-5 flex-shrink-0 text-ember-400 md:h-6 md:w-6" />
-                    {typeof benefit === 'object' ? (
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-sm font-bold text-white md:text-base">
-                          {benefit.main}
-                        </span>
-                        <span className="text-xs font-semibold text-ember-400 md:text-sm">
-                          {benefit.sub}
-                        </span>
-                      </div>
-                    ) : (
-                      <span
-                        className={`text-sm md:text-base ${
-                          index === 0 ? 'font-bold text-white' : 'text-chrome-300'
-                        }`}
-                      >
-                        {benefit}
-                      </span>
-                    )}
+                    <span
+                      className={`text-sm md:text-base ${
+                        index === 0 ? 'font-bold text-white' : 'text-chrome-300'
+                      }`}
+                    >
+                      {benefit}
+                    </span>
                   </motion.li>
                 ))}
               </ul>

@@ -60,7 +60,6 @@ async function saveSubmissions(submissions: Submission[]): Promise<void> {
     await put(BLOB_PATH, data, {
       access: 'public',
       addRandomSuffix: false,
-      allowOverwrite: true,
     });
     return;
   }
