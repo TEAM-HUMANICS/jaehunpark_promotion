@@ -56,8 +56,8 @@ export default function HeroSection() {
           />
         ) : (
           <div
-            className="h-full w-full bg-cover bg-center bg-no-repeat md:absolute md:inset-0 md:h-full md:w-full"
-            style={{ backgroundImage: "url('/main2.jpg')" }}
+            className="h-full w-full bg-contain bg-center bg-no-repeat md:absolute md:inset-0 md:h-full md:w-full"
+            style={{ backgroundImage: "url('/new1.png')" }}
           />
         )}
         {YOUTUBE_VIDEO_ID && (

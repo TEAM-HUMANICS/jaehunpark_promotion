@@ -20,7 +20,7 @@ export default function SegymIntroSection() {
 
         {/* 이미지 - 전체 보이게 (모바일/PC 동일) */}
         <motion.div
-          className="relative mb-2 w-full overflow-hidden rounded-2xl border border-void-600 md:mb-16"
+          className="relative mb-2 w-full overflow-hidden rounded-2xl md:mb-16"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -28,10 +28,10 @@ export default function SegymIntroSection() {
         >
           <div className="relative h-[45vh] w-full md:h-[75vh]">
             <Image
-              src="/main2.jpg"
+              src="/new1.png"
               alt="박재훈 × SEGYM AI 로봇 프리웨이트 머신"
               fill
-              className="object-cover"
+              className="object-contain object-center"
               sizes="100vw"
               priority
             />
